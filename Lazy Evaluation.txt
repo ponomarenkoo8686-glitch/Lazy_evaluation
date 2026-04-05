@@ -1,0 +1,148 @@
+Звіт з лабораторної роботи
+Тема: Lazy Evaluation
+Виконав: Пономаренко Олег
+
+Завдання 1. Порівняння eager vs lazy
+data = [1, 2, 3, 4, 5]
+
+# Eager (list comprehension):
+squares_list = [x**2 for x in data]
+print(type(squares_list))  # <class 'list'>
+
+# Lazy (generator expression):
+squares_gen = (x**2 for x in data)
+print(type(squares_gen))   # <class 'generator'>
+Список обчислює всі значення одразу і зберігає їх у пам'яті. Генератор обчислює значення лише при запиті. При великих даних генератор витрачає значно менше пам'яті.
+
+Завдання 2. Генератор з yield
+def generate_numbers(n):
+    for i in range(1, n + 1):
+        yield i
+
+for x in generate_numbers(5):
+    print(x)  # 1 2 3 4 5
+
+Завдання 3. Lazy квадрат
+def lazy_square(data):
+    for x in data:
+        yield x ** 2
+
+print(list(lazy_square([1, 2, 3])))  # [1, 4, 9]
+
+Завдання 4. Lazy filter
+def lazy_filter(func, data):
+    for x in data:
+        if func(x):
+            yield x
+
+Завдання 5. Lazy map
+def lazy_map(func, data):
+    for x in data:
+        yield func(x)
+
+Завдання 6. Комбінування
+data = range(1, 10)
+evens = lazy_filter(lambda x: x % 2 == 0, data)
+squares = lazy_map(lambda x: x ** 2, evens)
+print(list(squares))  # [4, 16, 36, 64]
+
+Завдання 7-8. Pipeline та Lazy pipeline
+def pipeline(data, steps):
+    result = data
+    for step in steps:
+        result = step(result)
+    return result
+
+# Lazy pipeline на мільйоні елементів:
+result = pipeline(
+    range(1, 1_000_000),
+    [
+        lambda xs: lazy_filter(lambda x: x % 2 == 0, xs),
+        lambda xs: lazy_map(lambda x: x * x, xs)
+    ]
+)
+# Отримати лише перші 5:
+import itertools
+print(list(itertools.islice(result, 5)))  # [4, 16, 36, 64, 100]
+
+Завдання 9. Відкладене виконання
+def debug(x):
+    print(f'Processing {x}')
+    return x
+
+gen = lazy_map(debug, range(5))
+# Нічого не виводить — обчислення відкладене
+next(gen)  # Processing 0 — тільки тепер обчислення
+
+Завдання 10. Обчислення on-demand
+gen = lazy_map(lambda x: x*x, range(10))
+print(next(gen))  # 0
+print(next(gen))  # 1
+print(next(gen))  # 4
+
+Завдання 11. Великий діапазон
+data = range(10**9)
+import itertools
+result = itertools.islice(lazy_map(lambda x: x*2, data), 10)
+print(list(result))  # [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
+Жодного списку не створюється — пам'ять не витрачається на 10^9 елементів.
+
+Завдання 12. Читання файлу (імітація)
+def read_lines():
+    fake_file = ['line 1', 'line 2', 'line 3']
+    for line in fake_file:
+        yield line
+
+Завдання 13. Обробка транзакцій
+transactions = range(1_000_000)
+evens = lazy_filter(lambda x: x % 2 == 0, transactions)
+scaled = lazy_map(lambda x: x * 10, evens)
+import itertools
+first_100 = itertools.islice(scaled, 100)
+total = sum(first_100)
+print(total)  # 49000
+
+Завдання 15. Нескінченна послідовність
+def infinite_numbers(start=0):
+    n = start
+    while True:
+        yield n
+        n += 1
+
+gen = infinite_numbers()
+print(next(gen))  # 0
+print(next(gen))  # 1
+print(next(gen))  # 2
+
+Завдання 16. Compose lazy functions
+def compose(f, g):
+    def composed(data):
+        return f(g(data))
+    return composed
+
+even_squares = compose(
+    lambda xs: lazy_map(lambda x: x**2, xs),
+    lambda xs: lazy_filter(lambda x: x % 2 == 0, xs)
+)
+
+Завдання 18. Lazy Data Processing Engine
+def run_pipeline(data, steps):
+    result = data
+    for step in steps:
+        result = step(result)
+    return result  # повертає генератор, не список
+
+# Використання:
+output = run_pipeline(
+    range(1, 100),
+    [
+        lambda xs: lazy_filter(lambda x: x % 3 == 0, xs),
+        lambda xs: lazy_map(lambda x: x * 10, xs)
+    ]
+)
+print(list(itertools.islice(output, 5)))  # [30, 60, 90, 120, 150]
+
+Висновок
+Lazy evaluation дозволяє обробляти великі та нескінченні послідовності без 
+завантаження всіх даних у пам'ять. Генератори в Python реалізують відкладені обчислення через yield.
+Pipeline з генераторів є ефективним і компактним способом обробки даних у функціональному стилі.
